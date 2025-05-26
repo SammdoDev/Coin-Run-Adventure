@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collect Coin Game</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <script src="scenePlay.js"></script>
+    <script>
+        var layoutSize = { 'w': 1024, 'h': 768 };
+        var X_POSSITION;
+        var Y_POSSITION;
+        var relativeSize;
+    </script>
+</head>
+
+<body>
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            width: 1024,
+            height: 768,
+            scene: [scenePlay],
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    debug: false
+                }
+            },
+            scale: {
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+            }
+        };
+
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+
+</html>
