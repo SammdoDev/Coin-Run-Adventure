@@ -666,106 +666,188 @@ var scenePlay = new Phaser.Class({
       });
     };
 
-    // Virtual Controller (Tombol Lingkaran Berwarna)
+    // ====================
+    // Virtual Controller System (Button di Luar Canvas)
+    // ====================
+
+    // Initialize joystick state
     this.joystick = {
       left: { active: false },
       right: { active: false },
       jump: { active: false },
     };
 
-    const screenWidth = this.sys.game.canvas.width;
-    const screenHeight = this.sys.game.canvas.height;
-    const radius = 40;
-    const padding = 20;
-
-    function createButton(scene, x, y, color, labelText) {
-      const container = scene.add.container(x, y);
-      const bg = scene.add
-        .circle(0, 0, radius, color)
-        .setInteractive()
-        .setDepth(1000);
-      const label = scene.add
-        .text(0, 0, labelText, {
-          fontSize: "24px",
-          color: "#ffffff",
-          fontStyle: "bold",
-        })
-        .setOrigin(0.5)
-        .setDepth(1001);
-      container.add([bg, label]);
-      container.setDepth(1000);
-      container.setVisible(false); // TAMBAH BARIS INI
-      return { container, bg };
-    }
-
-    this.anims.create({
-      key: "left",
-      frames: this.anims.generateFrameNumbers("char", { start: 0, end: 3 }),
-      frameRate: 10,
-      repeat: -1,
-    });
-
-    this.anims.create({
-      key: "turn",
-      frames: [{ key: "char", frame: 4 }],
-      frameRate: 20,
-    });
-
-    this.anims.create({
-      key: "right",
-      frames: this.anims.generateFrameNumbers("char", { start: 5, end: 8 }),
-      frameRate: 10,
-      repeat: -1,
-    });
-
-    // Tombol Kiri
-    this.joystick.leftButton = createButton(
-      this,
-      padding + radius,
-      screenHeight - radius - padding,
-      0x3498db,
-      "←"
-    );
-    // Tombol Kanan
-    this.joystick.rightButton = createButton(
-      this,
-      padding + radius * 3 + 20,
-      screenHeight - radius - padding,
-      0x2ecc71,
-      "→"
-    );
-    // Tombol Lompat
-    this.joystick.jumpButton = createButton(
-      this,
-      screenWidth - radius - padding,
-      screenHeight - radius - padding,
-      0xe67e22,
-      "↑"
-    );
-
-    // Event Tombol
-    const setTouchEvents = (button, key) => {
-      button.bg.on("pointerdown", () => (this.joystick[key].active = true));
-      button.bg.on("pointerup", () => (this.joystick[key].active = false));
-      button.bg.on("pointerout", () => (this.joystick[key].active = false)); // jika jari keluar dari tombol
+    // Konfigurasi untuk button external
+    const buttonConfig = {
+      radius: 60, // Diperbesar dari 40 ke 60
+      padding: 30, // Diperbesar dari 20 ke 30
+      colors: {
+        left: "#3498db",
+        right: "#2ecc71",
+        jump: "#e67e22",
+      },
     };
 
-    setTouchEvents(this.joystick.leftButton, "left");
-    setTouchEvents(this.joystick.rightButton, "right");
-    setTouchEvents(this.joystick.jumpButton, "jump");
+    // Fungsi untuk membuat DOM button di luar canvas
+    this.createExternalButton = function (id, text, color, position) {
+      // Hapus button lama jika ada
+      const existingBtn = document.getElementById(id);
+      if (existingBtn) {
+        existingBtn.remove();
+      }
 
-    // Fungsi untuk menampilkan/menyembunyikan joystick
+      const button = document.createElement("div");
+      button.id = id;
+      button.innerHTML = text;
+
+      // Style untuk button
+      Object.assign(button.style, {
+        position: "fixed",
+        width: buttonConfig.radius * 2 + "px",
+        height: buttonConfig.radius * 2 + "px",
+        borderRadius: "50%",
+        backgroundColor: color,
+        color: "white",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "32px", // Diperbesar dari 24px
+        fontWeight: "bold",
+        cursor: "pointer",
+        userSelect: "none",
+        zIndex: "1000",
+        border: "3px solid rgba(255,255,255,0.3)",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+        transition: "all 0.1s ease",
+        left: position.x + "px",
+        bottom: position.y + "px",
+        display: "none", // Hidden by default
+      });
+
+      // Hover effects
+      button.addEventListener("mouseenter", () => {
+        button.style.transform = "scale(1.1)";
+        button.style.boxShadow = "0 6px 16px rgba(0,0,0,0.4)";
+      });
+
+      button.addEventListener("mouseleave", () => {
+        button.style.transform = "scale(1)";
+        button.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+      });
+
+      document.body.appendChild(button);
+      return button;
+    };
+
+    // Buat button-button external
+    this.externalButtons = {
+      left: this.createExternalButton(
+        "gamepad-left",
+        "←",
+        buttonConfig.colors.left,
+        {
+          x: buttonConfig.padding,
+          y: buttonConfig.padding,
+        }
+      ),
+      right: this.createExternalButton(
+        "gamepad-right",
+        "→",
+        buttonConfig.colors.right,
+        {
+          x: buttonConfig.padding + buttonConfig.radius * 2 + 20,
+          y: buttonConfig.padding,
+        }
+      ),
+      jump: this.createExternalButton(
+        "gamepad-jump",
+        "↑",
+        buttonConfig.colors.jump,
+        {
+          x: window.innerWidth - buttonConfig.radius * 2 - buttonConfig.padding,
+          y: buttonConfig.padding,
+        }
+      ),
+    };
+
+    // Set up event listeners untuk external buttons
+    const setupButtonEvents = (button, joystickKey) => {
+      // Mouse events
+      button.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        activeScene.joystick[joystickKey].active = true;
+        button.style.transform = "scale(0.95)";
+        button.style.backgroundColor = button.style.backgroundColor
+          .replace(")", ", 0.8)")
+          .replace("rgb", "rgba");
+      });
+
+      button.addEventListener("mouseup", (e) => {
+        e.preventDefault();
+        activeScene.joystick[joystickKey].active = false;
+        button.style.transform = "scale(1)";
+        button.style.backgroundColor = button.style.backgroundColor
+          .replace(", 0.8)", ")")
+          .replace("rgba", "rgb");
+      });
+
+      // Touch events
+      button.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        activeScene.joystick[joystickKey].active = true;
+        button.style.transform = "scale(0.95)";
+        button.style.backgroundColor = button.style.backgroundColor
+          .replace(")", ", 0.8)")
+          .replace("rgb", "rgba");
+      });
+
+      button.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        activeScene.joystick[joystickKey].active = false;
+        button.style.transform = "scale(1)";
+        button.style.backgroundColor = button.style.backgroundColor
+          .replace(", 0.8)", ")")
+          .replace("rgba", "rgb");
+      });
+
+      // Prevent context menu
+      button.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+      });
+    };
+
+    // Setup semua button events
+    setupButtonEvents(this.externalButtons.left, "left");
+    setupButtonEvents(this.externalButtons.right, "right");
+    setupButtonEvents(this.externalButtons.jump, "jump");
+
+    // Fungsi untuk menampilkan/menyembunyikan external buttons
     this.showJoystick = function () {
-      activeScene.joystick.leftButton.container.setVisible(true);
-      activeScene.joystick.rightButton.container.setVisible(true);
-      activeScene.joystick.jumpButton.container.setVisible(true);
+      Object.values(activeScene.externalButtons).forEach((button) => {
+        button.style.display = "flex";
+      });
     };
 
     this.hideJoystick = function () {
-      activeScene.joystick.leftButton.container.setVisible(false);
-      activeScene.joystick.rightButton.container.setVisible(false);
-      activeScene.joystick.jumpButton.container.setVisible(false);
+      Object.values(activeScene.externalButtons).forEach((button) => {
+        button.style.display = "none";
+      });
     };
+
+    // Update posisi button saat window resize
+    this.updateButtonPositions = function () {
+      if (activeScene.externalButtons) {
+        // Update jump button position
+        activeScene.externalButtons.jump.style.left =
+          window.innerWidth -
+          buttonConfig.radius * 2 -
+          buttonConfig.padding +
+          "px";
+      }
+    };
+
+    // Listen untuk window resize
+    window.addEventListener("resize", this.updateButtonPositions);
 
     // Deteksi perangkat touch
     this.isTouchDevice = function () {
@@ -775,101 +857,79 @@ var scenePlay = new Phaser.Class({
         navigator.msMaxTouchPoints > 0
       );
     };
+
+    // Cleanup function untuk menghapus button saat scene destroyed
+    // Cleanup function untuk menghapus button saat scene destroyed
+    this.events.on("destroy", () => {
+      Object.values(this.externalButtons || {}).forEach((button) => {
+        if (button && button.remove) {
+          button.remove();
+        }
+      });
+    });
   },
 
   update: function () {
     if (!this.gameStarted || this.gameState !== "playing") return;
 
-    // Movement tracking
-    let isMoving = false;
-    const speed = 200;
-
-    // Check both keyboard and joystick input
-    const leftPressed = this.cursors.left.isDown || this.joystick.left.active;
-    const rightPressed =
-      this.cursors.right.isDown || this.joystick.right.active;
-    const jumpPressed =
-      (this.cursors.up.isDown || this.joystick.jump.active) &&
-      this.player.body.touching.down;
-
-    // Handle horizontal movement
-    if (rightPressed) {
-      this.player.setVelocityX(speed);
-      this.player.anims.play("right", true);
-      isMoving = true;
-    } else if (leftPressed) {
-      this.player.setVelocityX(-speed);
+    // Player movement handling
+    if (this.cursors.left.isDown || this.joystick.left.active) {
+      this.player.setVelocityX(-160);
       this.player.anims.play("left", true);
-      isMoving = true;
-    } else {
-      this.player.setVelocityX(0);
-      this.player.anims.play("front");
-      isMoving = false;
-    }
 
-    // Handle jumping
-    if (jumpPressed) {
-      this.player.setVelocityY(-420);
-      this.snd_jump.play();
-
-      if (this.isWalkingSoundPlaying) {
-        this.snd_walk.stop();
-        this.isWalkingSoundPlaying = false;
+      // Play walking sound
+      if (!this.isWalkingSoundPlaying) {
+        this.snd_walk.play();
+        this.isWalkingSoundPlaying = true;
       }
-    }
+    } else if (this.cursors.right.isDown || this.joystick.right.active) {
+      this.player.setVelocityX(160);
+      this.player.anims.play("right", true);
 
-    // Walking sound management
-    if (isMoving && this.player.body.touching.down) {
+      // Play walking sound
       if (!this.isWalkingSoundPlaying) {
         this.snd_walk.play();
         this.isWalkingSoundPlaying = true;
       }
     } else {
+      this.player.setVelocityX(0);
+      this.player.anims.play("front");
+
+      // Stop walking sound
       if (this.isWalkingSoundPlaying) {
         this.snd_walk.stop();
         this.isWalkingSoundPlaying = false;
       }
     }
 
-    // Enemy AI - simple patrol behavior
-    if (this.enemies) {
-      this.enemies.children.iterate(function (enemy) {
-        if (enemy && enemy.active) {
-          // Simple patrol behavior
-          if (enemy.patrol) {
-            enemy.setVelocityX(enemy.patrol.speed * enemy.patrol.direction);
-
-            // Cek jika musuh stuck (kecepatan 0 terlalu lama)
-            if (Math.abs(enemy.body.velocity.x) < 1) {
-              enemy.patrol.direction *= -1;
-              enemy.setVelocityX(enemy.patrol.speed * enemy.patrol.direction);
-            }
-
-            // Change direction at world bounds or randomly
-            if (
-              enemy.x <= 50 ||
-              enemy.x >= enemy.scene.sys.game.canvas.width - 50
-            ) {
-              enemy.patrol.direction *= -1;
-            }
-
-            // Occasionally change direction
-            if (Phaser.Math.Between(1, 1000) < 8) {
-              enemy.patrol.direction *= -1;
-            }
-          }
-        }
-      });
+    // Jumping
+    if (
+      (this.cursors.up.isDown || this.joystick.jump.active) &&
+      this.player.body.touching.down
+    ) {
+      this.player.setVelocityY(-330);
+      this.snd_jump.play();
     }
 
-    // Game over condition - player falls off screen
-    if (this.player.y > this.sys.game.canvas.height + 100) {
-      this.sound.stopAll();
-      this.snd_lose.play();
+    // Enemy movement AI
+    if (this.enemies) {
+      this.enemies.children.entries.forEach((enemy) => {
+        if (!enemy.active) return;
 
-      this.time.delayedCall(2000, () => {
-        this.physics.resume();
-        this.showGameOver();
+        // Simple patrol behavior
+        if (enemy.patrol) {
+          enemy.setVelocityX(enemy.patrol.speed * enemy.patrol.direction);
+
+          // Change direction at world bounds or platform edges
+          if (enemy.x <= 50 || enemy.x >= this.sys.game.canvas.width - 50) {
+            enemy.patrol.direction *= -1;
+          }
+
+          // Random direction change occasionally
+          if (Phaser.Math.Between(0, 200) === 1) {
+            enemy.patrol.direction *= -1;
+          }
+        }
       });
     }
   },
