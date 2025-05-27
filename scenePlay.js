@@ -813,7 +813,7 @@ var scenePlay = new Phaser.Class({
     // Konfigurasi untuk button external - DIPERBESAR dengan warna menarik
     const buttonConfig = {
       radius: 35, // Diperbesar dari 60 ke 80
-      padding: 3, // Changed from 40 to 100 to move buttons lower
+      padding: 10, // Changed from 40 to 100 to move buttons lower
       spacing: 20, // Jarak antar button
       colors: {
       left: {
