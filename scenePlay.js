@@ -23,6 +23,7 @@ var scenePlay = new Phaser.Class({
     this.load.image("enemy3", "images/Musuh03.png");
     this.load.image("coin_panel", "images/PanelCoin.png");
     this.load.image("ground", "images/Tile50.png");
+    this.load.image("winner", "images/CONGRATULATIONS.png");
     this.load.spritesheet("char", "images/CharaSpriteAnim.png", {
       frameWidth: 44.8,
       frameHeight: 93,
@@ -95,20 +96,10 @@ var scenePlay = new Phaser.Class({
 
     // Game Complete elements (dibuat di awal)
     this.gameCompleteImage = this.add
-      .text(
-        X_POSITION.CENTER,
-        Y_POSITION.CENTER - 100,
-        "CONGRATULATIONS!\nYOU COMPLETED ALL LEVELS!",
-        {
-          fontFamily: "Verdana, Arial",
-          fontSize: "32px",
-          color: "#00ff00",
-          align: "center",
-        }
-      )
-      .setOrigin(0.5)
+      .image(X_POSITION.CENTER, Y_POSITION.CENTER - 160, "winner")
       .setDepth(15)
-      .setVisible(false);
+      .setVisible(false)
+      .setScale(0.3); // Add setScale to adjust the image size
 
     this.finalScoreText = this.add
       .text(X_POSITION.CENTER, Y_POSITION.CENTER, "Final Score: 0", {
@@ -261,7 +252,7 @@ var scenePlay = new Phaser.Class({
       } else if (activeScene.currentLevel == 2) {
         let p1 = activeScene.platforms.create(
           80 + relativeSize.w,
-          Y_POSITION.BOTTOM - 150,
+          Y_POSITION.BOTTOM - 130,
           "ground"
         );
         platformPositions.push({ x: p1.x, y: p1.y - 60 });
@@ -309,7 +300,7 @@ var scenePlay = new Phaser.Class({
         platformPositions.push({ x: pLow2.x, y: pLow2.y - 60 });
       } else {
         let p1 = activeScene.platforms.create(
-          170 + relativeSize.w,
+          180 + relativeSize.w,
           Y_POSITION.BOTTOM - 250,
           "ground"
         );
@@ -330,21 +321,21 @@ var scenePlay = new Phaser.Class({
         platformPositions.push({ x: p3.x, y: p3.y - 60 });
 
         let p4 = activeScene.platforms.create(
-          690 + relativeSize.w,
+          670 + relativeSize.w,
           Y_POSITION.BOTTOM - 320,
           "ground"
         );
         platformPositions.push({ x: p4.x, y: p4.y - 60 });
 
         let p5 = activeScene.platforms.create(
-          960 + relativeSize.w,
+          940 + relativeSize.w,
           Y_POSITION.BOTTOM - 200,
           "ground"
         );
         platformPositions.push({ x: p5.x, y: p5.y - 60 });
 
         let pLow1 = activeScene.platforms.create(
-          80 + relativeSize.w,
+          90 + relativeSize.w,
           Y_POSITION.BOTTOM - 75,
           "ground"
         );
@@ -501,10 +492,19 @@ var scenePlay = new Phaser.Class({
       activeScene.playAgainButton.setVisible(false);
 
       // Show game elements
+      // Show game elements
       activeScene.coinPanel.setVisible(true);
       activeScene.coinText.setVisible(true);
       activeScene.levelText.setVisible(true);
       activeScene.player.setVisible(true);
+
+      // Tampilkan joystick hanya jika perangkat touch
+      if (activeScene.isTouchDevice()) {
+        activeScene.showJoystick();
+      }
+
+      // Start music
+      activeScene.music_play.play();
 
       // Start music
       activeScene.music_play.play();
@@ -545,6 +545,9 @@ var scenePlay = new Phaser.Class({
       activeScene.levelText.setVisible(false);
       activeScene.player.setVisible(false);
 
+      // Sembunyikan joystick
+      activeScene.hideJoystick();
+
       // Hide game complete elements
       activeScene.gameCompleteImage.setVisible(false);
       activeScene.finalScoreText.setVisible(false);
@@ -567,6 +570,9 @@ var scenePlay = new Phaser.Class({
       activeScene.coinText.setVisible(false);
       activeScene.levelText.setVisible(false);
       activeScene.player.setVisible(false);
+
+      // Sembunyikan joystick
+      activeScene.hideJoystick();
 
       // Show game complete elements
       activeScene.gameCompleteImage.setVisible(true);
@@ -659,6 +665,116 @@ var scenePlay = new Phaser.Class({
         activeScene.showGameOver();
       });
     };
+
+    // Virtual Controller (Tombol Lingkaran Berwarna)
+    this.joystick = {
+      left: { active: false },
+      right: { active: false },
+      jump: { active: false },
+    };
+
+    const screenWidth = this.sys.game.canvas.width;
+    const screenHeight = this.sys.game.canvas.height;
+    const radius = 40;
+    const padding = 20;
+
+    function createButton(scene, x, y, color, labelText) {
+      const container = scene.add.container(x, y);
+      const bg = scene.add
+        .circle(0, 0, radius, color)
+        .setInteractive()
+        .setDepth(1000);
+      const label = scene.add
+        .text(0, 0, labelText, {
+          fontSize: "24px",
+          color: "#ffffff",
+          fontStyle: "bold",
+        })
+        .setOrigin(0.5)
+        .setDepth(1001);
+      container.add([bg, label]);
+      container.setDepth(1000);
+      container.setVisible(false); // TAMBAH BARIS INI
+      return { container, bg };
+    }
+
+    this.anims.create({
+      key: "left",
+      frames: this.anims.generateFrameNumbers("char", { start: 0, end: 3 }),
+      frameRate: 10,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: "turn",
+      frames: [{ key: "char", frame: 4 }],
+      frameRate: 20,
+    });
+
+    this.anims.create({
+      key: "right",
+      frames: this.anims.generateFrameNumbers("char", { start: 5, end: 8 }),
+      frameRate: 10,
+      repeat: -1,
+    });
+
+    // Tombol Kiri
+    this.joystick.leftButton = createButton(
+      this,
+      padding + radius,
+      screenHeight - radius - padding,
+      0x3498db,
+      "←"
+    );
+    // Tombol Kanan
+    this.joystick.rightButton = createButton(
+      this,
+      padding + radius * 3 + 20,
+      screenHeight - radius - padding,
+      0x2ecc71,
+      "→"
+    );
+    // Tombol Lompat
+    this.joystick.jumpButton = createButton(
+      this,
+      screenWidth - radius - padding,
+      screenHeight - radius - padding,
+      0xe67e22,
+      "↑"
+    );
+
+    // Event Tombol
+    const setTouchEvents = (button, key) => {
+      button.bg.on("pointerdown", () => (this.joystick[key].active = true));
+      button.bg.on("pointerup", () => (this.joystick[key].active = false));
+      button.bg.on("pointerout", () => (this.joystick[key].active = false)); // jika jari keluar dari tombol
+    };
+
+    setTouchEvents(this.joystick.leftButton, "left");
+    setTouchEvents(this.joystick.rightButton, "right");
+    setTouchEvents(this.joystick.jumpButton, "jump");
+
+    // Fungsi untuk menampilkan/menyembunyikan joystick
+    this.showJoystick = function () {
+      activeScene.joystick.leftButton.container.setVisible(true);
+      activeScene.joystick.rightButton.container.setVisible(true);
+      activeScene.joystick.jumpButton.container.setVisible(true);
+    };
+
+    this.hideJoystick = function () {
+      activeScene.joystick.leftButton.container.setVisible(false);
+      activeScene.joystick.rightButton.container.setVisible(false);
+      activeScene.joystick.jumpButton.container.setVisible(false);
+    };
+
+    // Deteksi perangkat touch
+    this.isTouchDevice = function () {
+      return (
+        "ontouchstart" in window ||
+        navigator.maxTouchPoints > 0 ||
+        navigator.msMaxTouchPoints > 0
+      );
+    };
   },
 
   update: function () {
@@ -666,24 +782,40 @@ var scenePlay = new Phaser.Class({
 
     // Movement tracking
     let isMoving = false;
+    const speed = 200;
 
-    // Right movement
-    if (this.cursors.right.isDown) {
-      this.player.setVelocityX(200);
+    // Check both keyboard and joystick input
+    const leftPressed = this.cursors.left.isDown || this.joystick.left.active;
+    const rightPressed =
+      this.cursors.right.isDown || this.joystick.right.active;
+    const jumpPressed =
+      (this.cursors.up.isDown || this.joystick.jump.active) &&
+      this.player.body.touching.down;
+
+    // Handle horizontal movement
+    if (rightPressed) {
+      this.player.setVelocityX(speed);
       this.player.anims.play("right", true);
       isMoving = true;
-    }
-    // Left movement
-    else if (this.cursors.left.isDown) {
-      this.player.setVelocityX(-200);
+    } else if (leftPressed) {
+      this.player.setVelocityX(-speed);
       this.player.anims.play("left", true);
       isMoving = true;
-    }
-    // No movement
-    else {
+    } else {
       this.player.setVelocityX(0);
       this.player.anims.play("front");
       isMoving = false;
+    }
+
+    // Handle jumping
+    if (jumpPressed) {
+      this.player.setVelocityY(-420);
+      this.snd_jump.play();
+
+      if (this.isWalkingSoundPlaying) {
+        this.snd_walk.stop();
+        this.isWalkingSoundPlaying = false;
+      }
     }
 
     // Walking sound management
@@ -693,17 +825,6 @@ var scenePlay = new Phaser.Class({
         this.isWalkingSoundPlaying = true;
       }
     } else {
-      if (this.isWalkingSoundPlaying) {
-        this.snd_walk.stop();
-        this.isWalkingSoundPlaying = false;
-      }
-    }
-
-    // Jumping - player can jump when touching ground
-    if (this.cursors.up.isDown && this.player.body.touching.down) {
-      this.player.setVelocityY(-420);
-      this.snd_jump.play();
-
       if (this.isWalkingSoundPlaying) {
         this.snd_walk.stop();
         this.isWalkingSoundPlaying = false;
