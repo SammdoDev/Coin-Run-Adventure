@@ -11,7 +11,7 @@ function initializeGame() {
     type: Phaser.AUTO,
     width: 1024,
     height: 768,
-    parent: "game-container", 
+    parent: "game-container",
     physics: {
       default: "arcade",
       arcade: {
@@ -603,6 +603,16 @@ var scenePlay = new Phaser.Class({
       activeScene.gameState = "playing";
       activeScene.gameStarted = true;
 
+      // RESET SEMUA STATE
+      // 1. Stop semua sound dulu
+      activeScene.sound.stopAll();
+
+      // 2. Reset walking sound state
+      activeScene.isWalkingSoundPlaying = false;
+
+      // 3. Resume physics jika ter-pause
+      activeScene.physics.resume();
+
       // Hide all menu elements
       activeScene.playButton.setVisible(false);
       activeScene.gameOverImage.setVisible(false);
@@ -611,7 +621,6 @@ var scenePlay = new Phaser.Class({
       activeScene.finalScoreText.setVisible(false);
       activeScene.playAgainButton.setVisible(false);
 
-      // Show game elements
       // Show game elements
       activeScene.coinPanel.setVisible(true);
       activeScene.coinText.setVisible(true);
@@ -623,12 +632,6 @@ var scenePlay = new Phaser.Class({
         activeScene.showJoystick();
       }
 
-      // Start music
-      activeScene.music_play.play();
-
-      // Start music
-      activeScene.music_play.play();
-
       // Initialize game - start from level 1
       activeScene.currentLevel = 1;
       activeScene.countCoin = 0;
@@ -639,13 +642,19 @@ var scenePlay = new Phaser.Class({
       activeScene.prepareWorld();
       activeScene.setupCollisions();
 
-      // Reset player position
+      // Reset player position dan state
       activeScene.player.setPosition(
         X_POSITION.CENTER,
         Y_POSITION.BOTTOM - 200
       );
       activeScene.player.setVelocity(0, 0);
       activeScene.player.clearTint();
+      activeScene.player.anims.play("front"); // Set ke animasi default
+
+      // Start music setelah delay singkat
+      activeScene.time.delayedCall(500, () => {
+        activeScene.music_play.play();
+      });
     };
 
     this.restartGame = function () {
@@ -656,8 +665,33 @@ var scenePlay = new Phaser.Class({
       activeScene.gameState = "gameover";
       activeScene.gameStarted = false;
 
-      // Stop music
-      activeScene.music_play.stop();
+      // STOP SEMUA AKTIVITAS
+      // 1. Stop semua sound
+      activeScene.sound.stopAll();
+
+      // 2. Pause physics untuk menghentikan semua movement
+      activeScene.physics.pause();
+
+      // 3. Stop player movement dan animasi
+      if (activeScene.player && activeScene.player.active) {
+        activeScene.player.setVelocity(0, 0);
+        activeScene.player.anims.stop();
+      }
+
+      // 4. Stop enemy movement
+      if (activeScene.enemies) {
+        activeScene.enemies.children.entries.forEach((enemy) => {
+          if (enemy.active) {
+            enemy.setVelocity(0, 0);
+          }
+        });
+      }
+
+      // 5. Stop walking sound khusus
+      if (activeScene.isWalkingSoundPlaying) {
+        activeScene.snd_walk.stop();
+        activeScene.isWalkingSoundPlaying = false;
+      }
 
       // Hide game elements
       activeScene.coinPanel.setVisible(false);
@@ -665,7 +699,7 @@ var scenePlay = new Phaser.Class({
       activeScene.levelText.setVisible(false);
       activeScene.player.setVisible(false);
 
-      // Sembunyikan joystick
+      // Hide joystick
       activeScene.hideJoystick();
 
       // Hide game complete elements
@@ -673,17 +707,49 @@ var scenePlay = new Phaser.Class({
       activeScene.finalScoreText.setVisible(false);
       activeScene.playAgainButton.setVisible(false);
 
-      // Show game over elements
-      activeScene.gameOverImage.setVisible(true);
-      activeScene.restartButton.setVisible(true);
+      // Play game over sound setelah delay singkat
+      activeScene.time.delayedCall(500, () => {
+        activeScene.snd_lose.play();
+      });
+
+      // Show game over elements setelah sound
+      activeScene.time.delayedCall(1000, () => {
+        activeScene.gameOverImage.setVisible(true);
+        activeScene.restartButton.setVisible(true);
+      });
     };
 
     this.showGameComplete = function () {
       activeScene.gameState = "completed";
       activeScene.gameStarted = false;
 
-      // Stop music
-      activeScene.music_play.stop();
+      // STOP SEMUA AKTIVITAS
+      // 1. Stop semua sound
+      activeScene.sound.stopAll();
+
+      // 2. Pause physics untuk menghentikan semua movement
+      activeScene.physics.pause();
+
+      // 3. Stop player movement dan animasi
+      if (activeScene.player && activeScene.player.active) {
+        activeScene.player.setVelocity(0, 0);
+        activeScene.player.anims.stop();
+      }
+
+      // 4. Stop enemy movement
+      if (activeScene.enemies) {
+        activeScene.enemies.children.entries.forEach((enemy) => {
+          if (enemy.active) {
+            enemy.setVelocity(0, 0);
+          }
+        });
+      }
+
+      // 5. Stop walking sound khusus
+      if (activeScene.isWalkingSoundPlaying) {
+        activeScene.snd_walk.stop();
+        activeScene.isWalkingSoundPlaying = false;
+      }
 
       // Hide game elements
       activeScene.coinPanel.setVisible(false);
@@ -691,19 +757,23 @@ var scenePlay = new Phaser.Class({
       activeScene.levelText.setVisible(false);
       activeScene.player.setVisible(false);
 
-      // Sembunyikan joystick
+      // Hide joystick
       activeScene.hideJoystick();
 
-      // Show game complete elements
-      activeScene.gameCompleteImage.setVisible(true);
-      activeScene.finalScoreText.setText(
-        "Final Score: " + activeScene.countCoin
-      );
-      activeScene.finalScoreText.setVisible(true);
-      activeScene.playAgainButton.setVisible(true);
+      // Play completion sound
+      activeScene.time.delayedCall(500, () => {
+        activeScene.snd_leveling.play();
+      });
 
-      // Play level completion sound
-      activeScene.snd_leveling.play();
+      // Show game complete elements setelah sound
+      activeScene.time.delayedCall(1000, () => {
+        activeScene.gameCompleteImage.setVisible(true);
+        activeScene.finalScoreText.setText(
+          "Final Score: " + activeScene.countCoin
+        );
+        activeScene.finalScoreText.setVisible(true);
+        activeScene.playAgainButton.setVisible(true);
+      });
     };
 
     // ====================
@@ -768,19 +838,51 @@ var scenePlay = new Phaser.Class({
     };
 
     // Enemy collision function
+    // Enemy collision function
     this.hitEnemy = function (player, enemy) {
-      // Pause physics
+      // Ubah game state immediately
+      activeScene.gameState = "hit";
+      activeScene.gameStarted = false;
+
+      // STOP SEMUA AKTIVITAS LANGSUNG
+      // 1. Stop semua sound terlebih dahulu
+      activeScene.sound.stopAll();
+
+      // 2. Stop walking sound khusus
+      if (activeScene.isWalkingSoundPlaying) {
+        activeScene.snd_walk.stop();
+        activeScene.isWalkingSoundPlaying = false;
+      }
+
+      // 3. Pause physics untuk menghentikan semua movement
       activeScene.physics.pause();
+
+      // 4. Stop player movement dan animasi
+      if (activeScene.player && activeScene.player.active) {
+        activeScene.player.setVelocity(0, 0);
+        activeScene.player.anims.stop();
+      }
+
+      // 5. Stop enemy movement
+      if (activeScene.enemies) {
+        activeScene.enemies.children.entries.forEach((enemyObj) => {
+          if (enemyObj.active) {
+            enemyObj.setVelocity(0, 0);
+          }
+        });
+      }
 
       // Change player color to indicate hit
       activeScene.player.setTint(0xff0000);
 
-      // Stop all sounds and play game over sound
-      activeScene.sound.stopAll();
-      activeScene.snd_lose.play();
+      // Play game over sound setelah delay singkat
+      activeScene.time.delayedCall(500, () => {
+        activeScene.snd_lose.play();
+      });
 
       // Show game over screen after delay
       activeScene.time.delayedCall(2000, () => {
+        // Resume physics hanya untuk transisi ke game over
         activeScene.physics.resume();
         activeScene.showGameOver();
       });
@@ -789,13 +891,6 @@ var scenePlay = new Phaser.Class({
     // ====================
     // Virtual Controller System (Button di Luar Canvas)
     // ====================
-
-    // Initialize joystick state
-    this.joystick = {
-      left: { active: false },
-      right: { active: false },
-      jump: { active: false },
-    };
 
     // Konfigurasi untuk button external
     // ====================
@@ -812,24 +907,24 @@ var scenePlay = new Phaser.Class({
     // Konfigurasi untuk button external - DIPERBESAR dengan warna menarik
     const buttonConfig = {
       radius: 35, // Diperbesar dari 60 ke 80
-      padding: 3, // Changed from 40 to 100 to move buttons lower
+      padding: 10, // Changed from 40 to 100 to move buttons lower
       spacing: 20, // Jarak antar button
       colors: {
-      left: {
-        primary: "#667eea", // Gradient purple-blue
-        secondary: "#764ba2",
-        shadow: "rgba(102, 126, 234, 0.4)",
-      },
-      right: {
-        primary: "#f093fb", // Gradient pink-purple
-        secondary: "#f5576c",
-        shadow: "rgba(240, 147, 251, 0.4)",
-      },
-      jump: {
-        primary: "#4facfe", // Gradient blue-cyan
-        secondary: "#00f2fe",
-        shadow: "rgba(79, 172, 254, 0.4)",
-      },
+        left: {
+          primary: "#667eea", // Gradient purple-blue
+          secondary: "#764ba2",
+          shadow: "rgba(102, 126, 234, 0.4)",
+        },
+        right: {
+          primary: "#f093fb", // Gradient pink-purple
+          secondary: "#f5576c",
+          shadow: "rgba(240, 147, 251, 0.4)",
+        },
+        jump: {
+          primary: "#4facfe", // Gradient blue-cyan
+          secondary: "#00f2fe",
+          shadow: "rgba(79, 172, 254, 0.4)",
+        },
       },
     };
 
@@ -1054,8 +1149,8 @@ var scenePlay = new Phaser.Class({
   update: function () {
     if (!this.gameStarted || this.gameState !== "playing") return;
 
-    // Player movement handling
-    if (this.cursors.left.isDown || this.joystick.left.active) {
+    // Player movement handling - GUNAKAN joystickState GLOBAL, BUKAN this.joystick
+    if (this.cursors.left.isDown || joystickState.left.active) {
       this.player.setVelocityX(-160);
       this.player.anims.play("left", true);
 
@@ -1064,7 +1159,7 @@ var scenePlay = new Phaser.Class({
         this.snd_walk.play();
         this.isWalkingSoundPlaying = true;
       }
-    } else if (this.cursors.right.isDown || this.joystick.right.active) {
+    } else if (this.cursors.right.isDown || joystickState.right.active) {
       this.player.setVelocityX(160);
       this.player.anims.play("right", true);
 
@@ -1084,9 +1179,9 @@ var scenePlay = new Phaser.Class({
       }
     }
 
-    // Jumping
+    // Jumping - GUNAKAN joystickState GLOBAL
     if (
-      (this.cursors.up.isDown || this.joystick.jump.active) &&
+      (this.cursors.up.isDown || joystickState.jump.active) &&
       this.player.body.touching.down
     ) {
       this.player.setVelocityY(-330);
