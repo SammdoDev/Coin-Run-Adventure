@@ -678,6 +678,18 @@ var scenePlay = new Phaser.Class({
     };
 
     // Konfigurasi untuk button external
+    // ====================
+    // Virtual Controller System dengan Ukuran Lebih Besar
+    // ====================
+
+    // Initialize joystick state
+    this.joystick = {
+      left: { active: false },
+      right: { active: false },
+      jump: { active: false },
+    };
+
+    // Konfigurasi untuk button external - DIPERBESAR dengan warna menarik
     const buttonConfig = {
       radius: 80, // Diperbesar dari 60 ke 80
       padding: 40, // Diperbesar dari 30 ke 40
@@ -713,7 +725,7 @@ var scenePlay = new Phaser.Class({
       button.id = id;
       button.innerHTML = text;
 
-      // Style untuk button
+      // Style untuk button - DIPERBESAR
       Object.assign(button.style, {
         position: "fixed",
         width: buttonConfig.radius * 2 + "px",
@@ -724,35 +736,42 @@ var scenePlay = new Phaser.Class({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontSize: "32px", // Diperbesar dari 24px
+        fontSize: "42px", // Diperbesar dari 32px ke 42px
         fontWeight: "bold",
         cursor: "pointer",
         userSelect: "none",
         zIndex: "1000",
-        border: "3px solid rgba(255,255,255,0.3)",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-        transition: "all 0.1s ease",
+        border: "4px solid rgba(255,255,255,0.4)", // Border lebih tebal
+        boxShadow: "0 6px 20px rgba(0,0,0,0.4)", // Shadow lebih besar
+        transition: "all 0.15s ease",
         left: position.x + "px",
         bottom: position.y + "px",
         display: "none", // Hidden by default
+        // Tambahan untuk mobile
+        touchAction: "manipulation",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
+        KhtmlUserSelect: "none",
+        MozUserSelect: "none",
+        msUserSelect: "none",
       });
 
-      // Hover effects
+      // Hover effects - lebih responsif
       button.addEventListener("mouseenter", () => {
-        button.style.transform = "scale(1.1)";
-        button.style.boxShadow = "0 6px 16px rgba(0,0,0,0.4)";
+        button.style.transform = "scale(1.15)"; // Lebih besar saat hover
+        button.style.boxShadow = "0 8px 25px rgba(0,0,0,0.5)";
       });
 
       button.addEventListener("mouseleave", () => {
         button.style.transform = "scale(1)";
-        button.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+        button.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4)";
       });
 
       document.body.appendChild(button);
       return button;
     };
 
-    // Buat button-button external
+    // Buat button-button external dengan posisi yang lebih baik
     this.externalButtons = {
       left: this.createExternalButton(
         "gamepad-left",
@@ -768,7 +787,10 @@ var scenePlay = new Phaser.Class({
         "→",
         buttonConfig.colors.right,
         {
-          x: buttonConfig.padding + buttonConfig.radius * 2 + 20,
+          x:
+            buttonConfig.padding +
+            buttonConfig.radius * 2 +
+            buttonConfig.spacing,
           y: buttonConfig.padding,
         }
       ),
@@ -783,48 +805,65 @@ var scenePlay = new Phaser.Class({
       ),
     };
 
-    // Set up event listeners untuk external buttons
+    // Set up event listeners untuk external buttons dengan feedback yang lebih baik
     const setupButtonEvents = (button, joystickKey) => {
+      const activateButton = () => {
+        activeScene.joystick[joystickKey].active = true;
+        button.style.transform = "scale(0.9)"; // Efek tekan lebih terlihat
+        button.style.backgroundColor = button.style.backgroundColor
+          .replace(")", ", 0.7)")
+          .replace("rgb", "rgba");
+        button.style.boxShadow = "0 2px 10px rgba(0,0,0,0.6)";
+      };
+
+      const deactivateButton = () => {
+        activeScene.joystick[joystickKey].active = false;
+        button.style.transform = "scale(1)";
+        button.style.backgroundColor = button.style.backgroundColor
+          .replace(", 0.7)", ")")
+          .replace("rgba", "rgb");
+        button.style.boxShadow = "0 6px 20px rgba(0,0,0,0.4)";
+      };
+
       // Mouse events
       button.addEventListener("mousedown", (e) => {
         e.preventDefault();
-        activeScene.joystick[joystickKey].active = true;
-        button.style.transform = "scale(0.95)";
-        button.style.backgroundColor = button.style.backgroundColor
-          .replace(")", ", 0.8)")
-          .replace("rgb", "rgba");
+        activateButton();
       });
 
       button.addEventListener("mouseup", (e) => {
         e.preventDefault();
-        activeScene.joystick[joystickKey].active = false;
-        button.style.transform = "scale(1)";
-        button.style.backgroundColor = button.style.backgroundColor
-          .replace(", 0.8)", ")")
-          .replace("rgba", "rgb");
+        deactivateButton();
       });
 
-      // Touch events
+      button.addEventListener("mouseleave", (e) => {
+        deactivateButton();
+      });
+
+      // Touch events - lebih responsif
       button.addEventListener("touchstart", (e) => {
         e.preventDefault();
-        activeScene.joystick[joystickKey].active = true;
-        button.style.transform = "scale(0.95)";
-        button.style.backgroundColor = button.style.backgroundColor
-          .replace(")", ", 0.8)")
-          .replace("rgb", "rgba");
+        e.stopPropagation();
+        activateButton();
       });
 
       button.addEventListener("touchend", (e) => {
         e.preventDefault();
-        activeScene.joystick[joystickKey].active = false;
-        button.style.transform = "scale(1)";
-        button.style.backgroundColor = button.style.backgroundColor
-          .replace(", 0.8)", ")")
-          .replace("rgba", "rgb");
+        e.stopPropagation();
+        deactivateButton();
       });
 
-      // Prevent context menu
+      button.addEventListener("touchcancel", (e) => {
+        e.preventDefault();
+        deactivateButton();
+      });
+
+      // Prevent context menu dan drag
       button.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+      });
+
+      button.addEventListener("dragstart", (e) => {
         e.preventDefault();
       });
     };
@@ -847,7 +886,7 @@ var scenePlay = new Phaser.Class({
       });
     };
 
-    // Update posisi button saat window resize
+    // Update posisi button saat window resize dengan ukuran yang responsive
     this.updateButtonPositions = function () {
       if (activeScene.externalButtons) {
         // Update jump button position
@@ -856,22 +895,31 @@ var scenePlay = new Phaser.Class({
           buttonConfig.radius * 2 -
           buttonConfig.padding +
           "px";
+
+        // Update right button position
+        activeScene.externalButtons.right.style.left =
+          buttonConfig.padding +
+          buttonConfig.radius * 2 +
+          buttonConfig.spacing +
+          "px";
       }
     };
 
     // Listen untuk window resize
     window.addEventListener("resize", this.updateButtonPositions);
 
-    // Deteksi perangkat touch
+    // Deteksi perangkat touch dengan lebih akurat
     this.isTouchDevice = function () {
       return (
         "ontouchstart" in window ||
         navigator.maxTouchPoints > 0 ||
-        navigator.msMaxTouchPoints > 0
+        navigator.msMaxTouchPoints > 0 ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        )
       );
     };
 
-    // Cleanup function untuk menghapus button saat scene destroyed
     // Cleanup function untuk menghapus button saat scene destroyed
     this.events.on("destroy", () => {
       Object.values(this.externalButtons || {}).forEach((button) => {
@@ -879,6 +927,7 @@ var scenePlay = new Phaser.Class({
           button.remove();
         }
       });
+      window.removeEventListener("resize", this.updateButtonPositions);
     });
   },
 
