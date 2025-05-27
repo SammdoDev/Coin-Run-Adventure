@@ -445,7 +445,7 @@ var scenePlay = new Phaser.Class({
         activeScene.player,
         activeScene.platforms
       );
-      activeScene.player.setGravity(0, 500);
+      activeScene.player.setGravity(300);
       activeScene.player.setBounce(0.2);
       activeScene.player.setCollideWorldBounds(true);
       activeScene.player.setVisible(false);
