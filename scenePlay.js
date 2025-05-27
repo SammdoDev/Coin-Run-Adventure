@@ -811,25 +811,25 @@ var scenePlay = new Phaser.Class({
 
     // Konfigurasi untuk button external - DIPERBESAR dengan warna menarik
     const buttonConfig = {
-      radius: 80, // Diperbesar dari 60 ke 80
-      padding: 40, // Diperbesar dari 30 ke 40
-      spacing: 30, // Jarak antar button
+      radius: 35, // Diperbesar dari 60 ke 80
+      padding: 3, // Changed from 40 to 100 to move buttons lower
+      spacing: 20, // Jarak antar button
       colors: {
-        left: {
-          primary: "#667eea", // Gradient purple-blue
-          secondary: "#764ba2",
-          shadow: "rgba(102, 126, 234, 0.4)",
-        },
-        right: {
-          primary: "#f093fb", // Gradient pink-purple
-          secondary: "#f5576c",
-          shadow: "rgba(240, 147, 251, 0.4)",
-        },
-        jump: {
-          primary: "#4facfe", // Gradient blue-cyan
-          secondary: "#00f2fe",
-          shadow: "rgba(79, 172, 254, 0.4)",
-        },
+      left: {
+        primary: "#667eea", // Gradient purple-blue
+        secondary: "#764ba2",
+        shadow: "rgba(102, 126, 234, 0.4)",
+      },
+      right: {
+        primary: "#f093fb", // Gradient pink-purple
+        secondary: "#f5576c",
+        shadow: "rgba(240, 147, 251, 0.4)",
+      },
+      jump: {
+        primary: "#4facfe", // Gradient blue-cyan
+        secondary: "#00f2fe",
+        shadow: "rgba(79, 172, 254, 0.4)",
+      },
       },
     };
 
