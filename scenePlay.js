@@ -1,3 +1,123 @@
+let game;
+let joystickState = {
+  left: { active: false },
+  right: { active: false },
+  jump: { active: false },
+};
+
+// Initialize game function
+function initializeGame() {
+  const config = {
+    type: Phaser.AUTO,
+    width: 1024,
+    height: 768,
+    parent: "game-container", 
+    physics: {
+      default: "arcade",
+      arcade: {
+        debug: false,
+      },
+    },
+    scene: scenePlay,
+    scale: {
+      mode: Phaser.Scale.FIT,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+    },
+  };
+
+  game = new Phaser.Game(config);
+  setupMobileControls();
+}
+
+// Setup mobile control buttons
+function setupMobileControls() {
+  const buttons = {
+    left: document.getElementById("gamepad-left"),
+    right: document.getElementById("gamepad-right"),
+    jump: document.getElementById("gamepad-jump"),
+  };
+
+  // Setup button event listeners
+  Object.keys(buttons).forEach((key) => {
+    const button = buttons[key];
+
+    // Touch events
+    button.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      joystickState[key].active = true;
+      button.style.transform = "scale(0.9)";
+      button.style.filter = "brightness(0.8)";
+    });
+
+    button.addEventListener("touchend", (e) => {
+      e.preventDefault();
+      joystickState[key].active = false;
+      button.style.transform = "scale(1)";
+      button.style.filter = "brightness(1)";
+    });
+
+    button.addEventListener("touchcancel", (e) => {
+      e.preventDefault();
+      joystickState[key].active = false;
+      button.style.transform = "scale(1)";
+      button.style.filter = "brightness(1)";
+    });
+
+    // Mouse events for desktop testing
+    button.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      joystickState[key].active = true;
+      button.style.transform = "scale(0.9)";
+      button.style.filter = "brightness(0.8)";
+    });
+
+    button.addEventListener("mouseup", (e) => {
+      e.preventDefault();
+      joystickState[key].active = false;
+      button.style.transform = "scale(1)";
+      button.style.filter = "brightness(1)";
+    });
+
+    button.addEventListener("mouseleave", (e) => {
+      joystickState[key].active = false;
+      button.style.transform = "scale(1)";
+      button.style.filter = "brightness(1)";
+    });
+
+    // Prevent context menu
+    button.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+    });
+  });
+}
+
+// Show/hide mobile controls
+function showMobileControls() {
+  const buttons = document.querySelectorAll(".game-button");
+  buttons.forEach((button) => {
+    button.style.display = "flex";
+  });
+}
+
+function hideMobileControls() {
+  const buttons = document.querySelectorAll(".game-button");
+  buttons.forEach((button) => {
+    button.style.display = "none";
+  });
+}
+
+// Check if device is touch-enabled
+function isTouchDevice() {
+  return (
+    "ontouchstart" in window ||
+    navigator.maxTouchPoints > 0 ||
+    navigator.msMaxTouchPoints > 0 ||
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    )
+  );
+}
+
 var scenePlay = new Phaser.Class({
   Extends: Phaser.Scene,
 

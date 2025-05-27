@@ -3,37 +3,300 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Collect Coin Game</title>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Phaser Game - Mobile</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
     <script src="scenePlay.js"></script>
-    <script>
-        var layoutSize = { 'w': 1024, 'h': 768 };
-        var X_POSSITION;
-        var Y_POSSITION;
-        var relativeSize;
-    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Fullscreen Button */
+        #fullscreen-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        #fullscreen-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        #fullscreen-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Orientation Warning */
+        #orientation-warning {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .rotate-icon {
+            font-size: 80px;
+            margin-bottom: 30px;
+            animation: rotate 2s linear infinite;
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .warning-text {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .warning-subtext {
+            font-size: 16px;
+            opacity: 0.8;
+            max-width: 300px;
+            line-height: 1.5;
+        }
+
+        /* Game Control Buttons - Enhanced */
+        .game-button {
+            position: fixed;
+            border-radius: 50%;
+            color: white;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            z-index: 1000;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.15s ease;
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        #gamepad-left {
+            width: 120px;
+            height: 120px;
+            font-size: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            left: 30px;
+            bottom: 30px;
+        }
+
+        #gamepad-right {
+            width: 120px;
+            height: 120px;
+            font-size: 50px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            left: 180px;
+            bottom: 30px;
+        }
+
+        #gamepad-jump {
+            width: 120px;
+            height: 120px;
+            font-size: 50px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            right: 30px;
+            bottom: 30px;
+        }
+
+        .game-button:active {
+            transform: scale(0.9);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+        }
+
+        .game-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Media Queries for Orientation */
+        @media screen and (orientation: portrait) {
+            #orientation-warning {
+                display: flex;
+            }
+
+            #game-container {
+                display: none;
+            }
+        }
+
+        @media screen and (orientation: landscape) {
+            #orientation-warning {
+                display: none;
+            }
+
+            #game-container {
+                display: block;
+            }
+        }
+
+        /* Force landscape on very small screens */
+        @media screen and (max-height: 500px) {
+            #orientation-warning {
+                display: none;
+            }
+
+            #game-container {
+                display: block;
+            }
+        }
+
+        /* Mobile specific adjustments */
+        @media screen and (max-width: 768px) {
+            #gamepad-left {
+                width: 100px;
+                height: 100px;
+                font-size: 40px;
+                left: 20px;
+                bottom: 20px;
+            }
+
+            #gamepad-right {
+                width: 100px;
+                height: 100px;
+                font-size: 40px;
+                left: 140px;
+                bottom: 20px;
+            }
+
+            #gamepad-jump {
+                width: 100px;
+                height: 100px;
+                font-size: 40px;
+                right: 20px;
+                bottom: 20px;
+            }
+
+            #fullscreen-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+                top: 15px;
+                right: 15px;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <script>
-        const config = {
-            type: Phaser.AUTO,
-            width: 1024,
-            height: 768,
-            scene: [scenePlay],
-            physics: {
-                default: 'arcade',
-                arcade: {
-                    debug: false
-                }
-            },
-            scale: {
-                autoCenter: Phaser.Scale.CENTER_BOTH,
-            }
-        };
+    <!-- Orientation Warning -->
+    <div id="orientation-warning">
+        <div class="rotate-icon">📱</div>
+        <div class="warning-text">Please Rotate Your Device</div>
+        <div class="warning-subtext">This game is best played in landscape mode for optimal experience</div>
+    </div>
 
-        const game = new Phaser.Game(config);
+    <!-- Fullscreen Button -->
+    <button id="fullscreen-btn" title="Toggle Fullscreen">⛶</button>
+
+    <!-- Game Container -->
+    <div id="game-container"></div>
+
+    <!-- Game Control Buttons -->
+    <div id="gamepad-left" class="game-button">←</div>
+    <div id="gamepad-right" class="game-button">→</div>
+    <div id="gamepad-jump" class="game-button">↑</div>
+
+    <script>
+        // Fullscreen functionality
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        document.getElementById('fullscreen-btn').addEventListener('click', toggleFullscreen);
+
+        // Update fullscreen button icon
+        document.addEventListener('fullscreenchange', () => {
+            const btn = document.getElementById('fullscreen-btn');
+            btn.innerHTML = document.fullscreenElement ? '⇲' : '⛶';
+        });
+
+        // Prevent zoom on double tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // Prevent pull-to-refresh
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Initialize game when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeGame();
+        });
     </script>
 </body>
 
