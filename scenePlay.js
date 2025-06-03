@@ -605,8 +605,15 @@ var scenePlay = new Phaser.Class({
     // ====================
 
     this.startGame = function () {
+      // PERBAIKAN: Reset semua state dengan benar
       activeScene.gameState = "playing";
       activeScene.gameStarted = true;
+      activeScene.gameActive = true; // Tambahkan ini
+
+      // PERBAIKAN: Pastikan physics aktif
+      if (activeScene.physics.world.isPaused) {
+        activeScene.physics.resume();
+      }
 
       // Hide all menu elements
       activeScene.playButton.setVisible(false);
@@ -616,7 +623,6 @@ var scenePlay = new Phaser.Class({
       activeScene.finalScoreText.setVisible(false);
       activeScene.playAgainButton.setVisible(false);
 
-      // Show game elements
       // Show game elements
       activeScene.coinPanel.setVisible(true);
       activeScene.coinText.setVisible(true);
@@ -628,10 +634,8 @@ var scenePlay = new Phaser.Class({
         activeScene.showJoystick();
       }
 
-      // Start music
-      activeScene.music_play.play();
-
-      // Start music
+      // PERBAIKAN: Stop music sebelum play untuk menghindari overlap
+      activeScene.music_play.stop();
       activeScene.music_play.play();
 
       // Initialize game - start from level 1
@@ -640,35 +644,86 @@ var scenePlay = new Phaser.Class({
       activeScene.coinText.setText("0");
       activeScene.levelText.setText("Level: " + activeScene.currentLevel);
 
+      // PERBAIKAN: Reset player terlebih dahulu
+      activeScene.resetPlayer();
+
       // Prepare world and set up collisions
       activeScene.prepareWorld();
       activeScene.setupCollisions();
+    };
 
-      // Reset player position
-      activeScene.player.setPosition(
-        30,
-        Y_POSITION.BOTTOM - 200
-      );
-      activeScene.player.setVelocity(0, 0);
-      activeScene.player.clearTint();
+    this.resetPlayer = function () {
+      if (activeScene.player) {
+        // Reset posisi dan velocity
+        activeScene.player.setPosition(30, Y_POSITION.BOTTOM - 200);
+        activeScene.player.setVelocity(0, 0);
+        activeScene.player.clearTint();
+
+        // PERBAIKAN: Pastikan physics body aktif
+        activeScene.player.body.enable = true;
+        activeScene.player.body.setGravityY(300);
+        activeScene.player.setBounce(0.1);
+        activeScene.player.setCollideWorldBounds(true);
+
+        // Reset animation
+        activeScene.player.anims.play("front");
+      }
     };
 
     this.restartGame = function () {
+      // PERBAIKAN: Cleanup dan reset sebelum start
+
+      // Stop semua sound
+      activeScene.sound.stopAll();
+      activeScene.isWalkingSoundPlaying = false;
+
+      // Reset physics jika ter-pause
+      if (activeScene.physics.world.isPaused) {
+        activeScene.physics.resume();
+      }
+
+      // Enable kembali physics bodies yang di-disable
+      if (activeScene.player && activeScene.player.body) {
+        activeScene.player.body.enable = true;
+      }
+
+      if (activeScene.enemies) {
+        activeScene.enemies.children.entries.forEach((enemy) => {
+          if (enemy && enemy.body) {
+            enemy.body.enable = true;
+          }
+        });
+      }
+
+      // Panggil startGame
       activeScene.startGame();
     };
 
     this.showGameOver = function () {
       activeScene.gameState = "gameover";
       activeScene.gameStarted = false;
-      activeScene.gameActive = false; // Tambahkan ini
+      activeScene.gameActive = false;
 
       // Stop music dan semua sound
       activeScene.music_play.stop();
-      activeScene.snd_walk.stop(); // Hentikan suara berjalan
-      activeScene.isWalkingSoundPlaying = false; // Reset flag
+      activeScene.snd_walk.stop();
+      activeScene.isWalkingSoundPlaying = false;
 
-      // Pause physics untuk menghentikan semua movement
-      activeScene.physics.pause();
+      // PERBAIKAN: Hentikan semua movement tanpa pause physics
+      if (activeScene.player) {
+        activeScene.player.setVelocity(0, 0);
+        activeScene.player.body.enable = false; // Disable player physics body
+      }
+
+      // Stop all enemies
+      if (activeScene.enemies) {
+        activeScene.enemies.children.entries.forEach((enemy) => {
+          if (enemy && enemy.body) {
+            enemy.setVelocity(0, 0);
+            enemy.body.enable = false;
+          }
+        });
+      }
 
       // Hide game elements
       activeScene.coinPanel.setVisible(false);
@@ -678,7 +733,7 @@ var scenePlay = new Phaser.Class({
 
       // Hide joystick
       if (activeScene.isTouchDevice()) {
-        hideMobileControls();
+        activeScene.hideJoystick();
       }
 
       // Hide game complete elements
@@ -694,15 +749,18 @@ var scenePlay = new Phaser.Class({
     this.showGameComplete = function () {
       activeScene.gameState = "completed";
       activeScene.gameStarted = false;
-      activeScene.gameActive = false; // Tambahkan ini
+      activeScene.gameActive = false;
 
       // Stop music dan semua sound
       activeScene.music_play.stop();
-      activeScene.snd_walk.stop(); // Hentikan suara berjalan
-      activeScene.isWalkingSoundPlaying = false; // Reset flag
+      activeScene.snd_walk.stop();
+      activeScene.isWalkingSoundPlaying = false;
 
-      // Pause physics untuk menghentikan semua movement
-      activeScene.physics.pause();
+      // PERBAIKAN: Sama seperti showGameOver, jangan pause physics
+      if (activeScene.player) {
+        activeScene.player.setVelocity(0, 0);
+        activeScene.player.body.enable = false;
+      }
 
       // Hide game elements
       activeScene.coinPanel.setVisible(false);
@@ -712,7 +770,7 @@ var scenePlay = new Phaser.Class({
 
       // Hide joystick
       if (activeScene.isTouchDevice()) {
-        hideMobileControls();
+        activeScene.hideJoystick();
       }
 
       // Show game complete elements
@@ -726,30 +784,45 @@ var scenePlay = new Phaser.Class({
       // Play level completion sound
       activeScene.snd_leveling.play();
     };
-
     // ====================
     // Collision Functions
     // ====================
 
     this.setupCollisions = function () {
-      // Clear existing collision detection
-      activeScene.physics.world.removeAllListeners();
+      // PERBAIKAN: Jangan hapus semua listeners, hanya cleanup yang spesifik
 
-      // Set up collision detection
-      activeScene.physics.add.overlap(
+      // Hapus overlap/collision yang sudah ada untuk objek game ini saja
+      if (activeScene.coinOverlap) {
+        activeScene.coinOverlap.destroy();
+      }
+      if (activeScene.enemyCollider) {
+        activeScene.enemyCollider.destroy();
+      }
+
+      // Set up collision detection yang baru
+      activeScene.coinOverlap = activeScene.physics.add.overlap(
         activeScene.player,
         activeScene.coins,
         activeScene.collectCoin,
         null,
         activeScene
       );
-      activeScene.physics.add.collider(
+
+      activeScene.enemyCollider = activeScene.physics.add.collider(
         activeScene.player,
         activeScene.enemies,
         activeScene.hitEnemy,
         null,
         activeScene
       );
+
+      // PERBAIKAN: Pastikan collision player-platform tetap ada
+      if (!activeScene.playerPlatformCollider) {
+        activeScene.playerPlatformCollider = activeScene.physics.add.collider(
+          activeScene.player,
+          activeScene.platforms
+        );
+      }
     };
 
     // Coin collection function
@@ -778,10 +851,7 @@ var scenePlay = new Phaser.Class({
             activeScene.prepareWorld();
             activeScene.setupCollisions();
             // Reset player position
-            activeScene.player.setPosition(
-              30,
-              Y_POSITION.BOTTOM - 200
-            );
+            activeScene.player.setPosition(30, Y_POSITION.BOTTOM - 200);
             activeScene.player.setVelocity(0, 0);
           });
         }
